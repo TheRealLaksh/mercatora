@@ -1,0 +1,45 @@
+/* CSS Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Global Variables - Theme Configuration */
+:root {
+  /* Colors */
+  --primary-color: #2563eb;       /* Royal Blue */
+  --secondary-color: #1e293b;     /* Dark Slate */
+  --accent-color: #f59e0b;        /* Amber */
+  --background-color: #f8fafc;    /* Light Gray */
+  --text-color: #0f172a;          /* Dark Blue/Black */
+  --danger-color: #ef4444;        /* Red */
+  --success-color: #22c55e;       /* Green */
+
+  /* Typography */
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-size-base: 16px;
+
+  /* Spacing */
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 2rem;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.5;
+}
+
+/* Utility Classes */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+.hidden {
+  display: none !important;
+}
