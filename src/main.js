@@ -1,19 +1,27 @@
 import './assets/css/global.css';
-import { auth, db } from './config/firebase.js'; // Import our new connection
-
-console.log('Mercatora System Initialized...');
-
-// Test Connection
-console.log('Firebase Auth Service:', auth);
-console.log('Firebase Database Service:', db);
+import { AuthService } from './services/authService';
+import { LoginView } from './ui/auth/loginView';
+import { DashboardView } from './ui/admin/dashboardView';
 
 const app = document.querySelector('#app');
-app.innerHTML = `
-  <div class="container" style="text-align: center; margin-top: 50px;">
-    <h1>Welcome to Mercatora</h1>
-    <p>System Status: <span style="color: var(--success-color); font-weight: bold;">ONLINE</span></p>
-    <p style="margin-top: 10px; color: var(--secondary-color);">
-       Check the browser console (F12) to verify Firebase connection.
-    </p>
-  </div>
-`;
+
+// Function to render a specific view
+function renderView(view, data = null) {
+  // 1. Inject HTML
+  app.innerHTML = view.template;
+  // 2. Attach Event Listeners
+  view.init(data);
+}
+
+// Global Auth Listener (The "Traffic Cop")
+AuthService.observeAuth((user) => {
+  if (user) {
+    // User IS logged in
+    console.log("User detected:", user.email);
+    renderView(DashboardView, user);
+  } else {
+    // User is NOT logged in
+    console.log("No user. Showing Login.");
+    renderView(LoginView);
+  }
+});
