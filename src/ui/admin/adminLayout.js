@@ -1,20 +1,17 @@
-import '../../assets/css/admin.css'; // Import the specific CSS
+import '../../assets/css/admin.css';
 import { AuthService } from "../../services/authService";
 import { ShopView } from "./shops/shopView";
 import { ProductView } from "./products/productView";
+import { LogView } from "./logs/logView"; // <--- 1. IMPORT LOG VIEW
 
 export const AdminLayout = {
-  // The Skeleton
   template: `
     <div class="admin-wrapper">
       <nav class="admin-sidebar">
         <h2>Mercatora</h2>
-        
         <a class="nav-link active" data-target="shops">🏪 Shops</a>
         <a class="nav-link" data-target="products">📦 Products</a>
-        <a class="nav-link" data-target="offers">🏷️ Offers (Soon)</a>
-        
-        <button id="logoutBtn" class="logout-btn">Logout</button>
+        <a class="nav-link" data-target="logs">🛡️ System Logs</a> <button id="logoutBtn" class="logout-btn">Logout</button>
       </nav>
 
       <main class="admin-content" id="mainContent">
@@ -23,35 +20,30 @@ export const AdminLayout = {
   `,
 
   init(user) {
-    // 1. Handle Logout
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       await AuthService.logout();
     });
 
-    // 2. Handle Navigation
     const links = document.querySelectorAll('.nav-link');
     const contentArea = document.getElementById('mainContent');
 
-    // Function to switch tabs
     const loadTab = (target) => {
-      // Update Active Class on Sidebar
       links.forEach(l => l.classList.remove('active'));
       const activeLink = document.querySelector(`[data-target="${target}"]`);
       if(activeLink) activeLink.classList.add('active');
 
-      // Inject View
       if (target === 'shops') {
         contentArea.innerHTML = ShopView.template;
         ShopView.init();
       } else if (target === 'products') {
         contentArea.innerHTML = ProductView.template;
         ProductView.init();
-      } else {
-        contentArea.innerHTML = `<h1>Coming Soon</h1><p>Module: ${target}</p>`;
+      } else if (target === 'logs') { // <--- 3. ADD LOGIC
+        contentArea.innerHTML = LogView.template;
+        LogView.init();
       }
     };
 
-    // Attach Click Events
     links.forEach(link => {
       link.addEventListener('click', (e) => {
         const target = e.target.dataset.target;
@@ -59,7 +51,6 @@ export const AdminLayout = {
       });
     });
 
-    // 3. Load Default Tab
     loadTab('shops');
   }
 };
