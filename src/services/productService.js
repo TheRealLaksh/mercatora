@@ -5,26 +5,24 @@ import {
     getDocs, 
     query, 
     orderBy, 
+    where, // <--- ADD THIS IMPORT
     serverTimestamp 
 } from "firebase/firestore";
 
 const COLLECTION_NAME = "products";
 
 export const ProductService = {
-    // 1. ADD a new product
+    // ... [Keep addProduct as is] ...
     async addProduct(productData) {
+        // (Keep existing code)
         try {
-            if (!productData.shopId) {
-                throw new Error("Product must be assigned to a shop!");
-            }
-
+            if (!productData.shopId) throw new Error("Product must be assigned to a shop!");
             const payload = {
                 ...productData,
-                price: parseFloat(productData.price), // Ensure number
-                stock: parseInt(productData.stock),   // Ensure integer
+                price: parseFloat(productData.price),
+                stock: parseInt(productData.stock),
                 createdAt: serverTimestamp()
             };
-
             const docRef = await addDoc(collection(db, COLLECTION_NAME), payload);
             return { id: docRef.id, ...payload };
         } catch (error) {
@@ -33,10 +31,28 @@ export const ProductService = {
         }
     },
 
-    // 2. GET all products (Global Inventory)
+    // ... [Keep getAllProducts as is] ...
     async getAllProducts() {
+        // (Keep existing code)
         try {
             const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error("Error fetching products:", error);
+            throw error;
+        }
+    },
+
+    // 3. NEW: Get products for a specific shop
+    async getProductsByShop(shopId) {
+        try {
+            // Create a query against the collection
+            const q = query(
+                collection(db, COLLECTION_NAME), 
+                where("shopId", "==", shopId) // <--- The Filtering Magic
+            );
+
             const querySnapshot = await getDocs(q);
             
             return querySnapshot.docs.map(doc => ({
@@ -44,8 +60,8 @@ export const ProductService = {
                 ...doc.data()
             }));
         } catch (error) {
-            console.error("Error fetching products:", error);
+            console.error("Error fetching shop products:", error);
             throw error;
         }
     }
-};
+};  
