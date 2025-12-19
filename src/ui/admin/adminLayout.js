@@ -2,7 +2,7 @@ import '../../assets/css/admin.css';
 import { AuthService } from "../../services/authService";
 import { ShopView } from "./shops/shopView";
 import { ProductView } from "./products/productView";
-import { LogView } from "./logs/logView"; // <--- 1. IMPORT LOG VIEW
+import { LogView } from "./audit/auditView"; // <--- 1. IMPORT LOG VIEW
 
 export const AdminLayout = {
   template: `
