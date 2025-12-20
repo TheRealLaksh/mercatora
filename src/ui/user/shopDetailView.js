@@ -1,63 +1,69 @@
 import { ProductService } from "../../services/productService";
+import { CartService } from "../../services/cartService";
+import { Toast } from "../common/toast";
 
 export const ShopDetailView = {
     template: `
-        <div style="margin-bottom: 20px;">
-            <button id="backBtn" style="background: none; border: none; color: var(--primary-color); cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold;">
-                ← Back to Directory
-            </button>
-        </div>
+        <div class="container" style="padding-top: 2rem;">
+            <div style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+                <span id="crumbHome" style="cursor: pointer; text-decoration: underline;">Home</span> > 
+                <span id="crumbShop" style="font-weight: bold;">Loading...</span>
+            </div>
 
-        <div style="background: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <h1 id="shopTitle" style="margin-bottom: 0.5rem;">Loading Shop...</h1>
-            <p id="shopMeta" style="color: #64748b;">...</p>
-        </div>
+            <div class="glass-card" style="padding: 2rem; margin-bottom: 2rem; border-left: 5px solid var(--primary-color);">
+                <h1 id="shopTitle" style="margin-bottom: 0.5rem;">Shop Name</h1>
+                <p id="shopMeta" style="color: var(--text-muted);">Details...</p>
+            </div>
 
-        <h2 style="margin-bottom: 1.5rem;">Products</h2>
-        
-        <div id="shopProductList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
-            <p>Loading products...</p>
+            <h2 style="margin-bottom: 1.5rem;">Products</h2>
+            <div id="shopProductList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
+                <p>Loading products...</p>
+            </div>
         </div>
     `,
 
     async init(params) {
-        // params contains { shopId, shopName, shopFloor, etc }
         const { shop, onBack } = params;
 
-        // 1. Setup Header
+        // Setup Breadcrumbs
+        document.getElementById('crumbHome').addEventListener('click', onBack);
+        document.getElementById('crumbShop').textContent = shop.name;
+
+        // Header Info
         document.getElementById('shopTitle').textContent = shop.name;
         document.getElementById('shopMeta').textContent = `${shop.category} | ${shop.floor} Floor`;
 
-        // 2. Handle Back Button
-        document.getElementById('backBtn').addEventListener('click', () => {
-            onBack();
-        });
-
-        // 3. Fetch Products
+        // Fetch Products
         const container = document.getElementById('shopProductList');
         try {
             const products = await ProductService.getProductsByShop(shop.id);
-
-            if (products.length === 0) {
-                container.innerHTML = '<p>This shop has not listed any products yet.</p>';
+            
+            if(products.length === 0) {
+                container.innerHTML = '<p>No products available.</p>'; 
                 return;
             }
 
             container.innerHTML = products.map(p => `
-                <div style="background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: transform 0.2s;">
-                    <div style="height: 150px; background: #f1f5f9; border-radius: 4px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; color: #cbd5e1;">
-                        📷 No Image
-                    </div>
-                    <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">${p.name}</h3>
-                    <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem; height: 40px; overflow: hidden;">${p.description || ''}</p>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 1.2rem; font-weight: bold; color: var(--text-color);">₹${p.price}</span>
-                        <button style="background: var(--primary-color); color: white; border: none; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;">
-                            Add to Cart
+                <div class="glass-card" style="padding: 1rem;">
+                    <div style="height: 150px; background: #f1f5f9; border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; color: #cbd5e1;">📷</div>
+                    <h4 style="margin-bottom: 0.5rem;">${p.name}</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+                        <span style="font-weight: bold; color: var(--primary-color);">₹${p.price}</span>
+                        <button class="add-cart-btn" data-id="${p.id}" style="background: var(--primary-color); color: white; border: none; padding: 5px 15px; border-radius: 20px; cursor: pointer;">
+                            + Add
                         </button>
                     </div>
                 </div>
             `).join('');
+
+            // Attach Cart Listeners
+            container.querySelectorAll('.add-cart-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const product = products.find(p => p.id === e.target.dataset.id);
+                    CartService.addToCart(product);
+                    Toast.show(`Added ${product.name} to cart`, "success");
+                });
+            });
 
         } catch (error) {
             container.innerHTML = '<p>Error loading products.</p>';

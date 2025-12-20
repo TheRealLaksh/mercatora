@@ -2,16 +2,19 @@ import '../../assets/css/admin.css';
 import { AuthService } from "../../services/authService";
 import { ShopView } from "./shops/shopView";
 import { ProductView } from "./products/productView";
-import { LogView } from "./audit/auditView"; // <--- 1. IMPORT LOG VIEW
+import { LogView } from "./audit/auditView";
+import { DashboardView } from "./dashboard/dashboardView"; // <--- IMPORT
 
 export const AdminLayout = {
   template: `
     <div class="admin-wrapper">
       <nav class="admin-sidebar">
-        <h2>Mercatora</h2>
-        <a class="nav-link active" data-target="shops">🏪 Shops</a>
+        <h2>Mercatora Admin</h2>
+        <a class="nav-link active" data-target="dashboard">📊 Dashboard</a>
+        <a class="nav-link" data-target="shops">🏪 Shops</a>
         <a class="nav-link" data-target="products">📦 Products</a>
-        <a class="nav-link" data-target="logs">🛡️ System Logs</a> <button id="logoutBtn" class="logout-btn">Logout</button>
+        <a class="nav-link" data-target="logs">🛡️ Logs</a> 
+        <button id="logoutBtn" class="logout-btn">Logout</button>
       </nav>
 
       <main class="admin-content" id="mainContent">
@@ -32,25 +35,30 @@ export const AdminLayout = {
       const activeLink = document.querySelector(`[data-target="${target}"]`);
       if(activeLink) activeLink.classList.add('active');
 
-      if (target === 'shops') {
+      // Router Switch
+      if (target === 'dashboard') {
+        contentArea.innerHTML = DashboardView.template;
+        DashboardView.init();
+      } else if (target === 'shops') {
         contentArea.innerHTML = ShopView.template;
         ShopView.init();
       } else if (target === 'products') {
         contentArea.innerHTML = ProductView.template;
         ProductView.init();
-      } else if (target === 'logs') { // <--- 3. ADD LOGIC
+      } else if (target === 'logs') {
         contentArea.innerHTML = LogView.template;
         LogView.init();
       }
     };
 
+    // Navigation Listeners
     links.forEach(link => {
       link.addEventListener('click', (e) => {
-        const target = e.target.dataset.target;
-        loadTab(target);
+        loadTab(e.target.dataset.target);
       });
     });
 
-    loadTab('shops');
+    // Default to Dashboard
+    loadTab('dashboard');
   }
 };
