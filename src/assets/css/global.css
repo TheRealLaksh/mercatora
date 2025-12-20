@@ -1,45 +1,82 @@
-/* CSS Reset */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+:root {
+  --primary-color: #2563eb;
+  --secondary-color: #1e293b;
+  --accent-color: #f59e0b;
+  --background-color: #f8fafc;
+  --card-bg: #ffffff;
+  --text-color: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --font-family: 'Inter', sans-serif;
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-/* Global Variables - Theme Configuration */
-:root {
-  /* Colors */
-  --primary-color: #2563eb;       /* Royal Blue */
-  --secondary-color: #1e293b;     /* Dark Slate */
-  --accent-color: #f59e0b;        /* Amber */
-  --background-color: #f8fafc;    /* Light Gray */
-  --text-color: #0f172a;          /* Dark Blue/Black */
-  --danger-color: #ef4444;        /* Red */
-  --success-color: #22c55e;       /* Green */
-
-  /* Typography */
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-size-base: 16px;
-
-  /* Spacing */
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 2rem;
+/* Dark Mode Variables */
+.dark-theme {
+  --background-color: #0f172a;
+  --card-bg: #1e293b;
+  --text-color: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --secondary-color: #f1f5f9; /* Invert for contrast */
 }
 
 body {
   font-family: var(--font-family);
   background-color: var(--background-color);
   color: var(--text-color);
-  line-height: 1.5;
+  transition: background-color 0.3s, color 0.3s;
 }
 
-/* Utility Classes */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 var(--spacing-md);
+/* Glassmorphism Card */
+.glass-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+}
+.glass-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
 }
 
-.hidden {
-  display: none !important;
+/* Toast Notifications */
+#toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
 }
+.toast {
+  background: var(--card-bg);
+  color: var(--text-color);
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  border-left: 5px solid var(--primary-color);
+  animation: slideIn 0.3s ease;
+  min-width: 250px;
+}
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+/* Cart Drawer */
+.cart-drawer {
+  position: fixed;
+  top: 0; right: -400px;
+  width: 350px;
+  height: 100vh;
+  background: var(--card-bg);
+  box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+  z-index: 1000;
+  transition: right 0.3s ease;
+  padding: 2rem;
+  display: flex; flex-direction: column;
+}
+.cart-drawer.open { right: 0; }
+.cart-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none;
+}
+.cart-overlay.open { display: block; }
