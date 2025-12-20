@@ -73,7 +73,8 @@ export const ShopView = {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(form);
-            
+            const submitBtn = form.querySelector('button[type="submit"]');
+
             const shopData = {
                 name: formData.get('name'),
                 shopNumber: formData.get('shopNumber'),
@@ -83,13 +84,24 @@ export const ShopView = {
             };
 
             try {
+                // Disable button and change text
+                submitBtn.disabled = true;
+                submitBtn.textContent = "Saving...";
+
                 await ShopService.addShop(shopData);
-                alert("Shop Added Successfully!");
+                
+                alert("✅ Shop Added Successfully!");
                 form.reset();
                 formContainer.style.display = 'none';
-                this.loadShops(listContainer); // Refresh list
+                this.loadShops(listContainer); 
+            
             } catch (error) {
-                alert("Error: " + error.message);
+                // Show error message
+                alert("⚠️ " + error.message);
+            } finally {
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Save Shop";
             }
         });
 

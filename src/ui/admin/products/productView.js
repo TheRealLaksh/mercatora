@@ -80,13 +80,14 @@ export const ProductView = {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(form);
-            
-            // Get the Shop Name for display purposes (optional but nice)
+            const submitBtn = form.querySelector('button[type="submit"]'); // Grab button ref
+
+            // Get the Shop Name for display purposes
             const selectedShopOption = shopSelect.options[shopSelect.selectedIndex].text;
 
             const productData = {
                 shopId: formData.get('shopId'),
-                shopName: selectedShopOption, // Storing name helps avoid extra queries later
+                shopName: selectedShopOption,
                 name: formData.get('name'),
                 price: formData.get('price'),
                 stock: formData.get('stock'),
@@ -94,13 +95,24 @@ export const ProductView = {
             };
 
             try {
+                // UI Feedback: Disable & Loading State
+                submitBtn.disabled = true;
+                submitBtn.textContent = "Saving...";
+
                 await ProductService.addProduct(productData);
-                alert("Product Added!");
+                
+                alert("✅ Product Added Successfully!");
                 form.reset();
                 formContainer.style.display = 'none';
                 this.loadProducts(listContainer);
+
             } catch (error) {
-                alert("Error: " + error.message);
+                // Show clean error message
+                alert("⚠️ " + error.message);
+            } finally {
+                // Always re-enable button
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Save Product";
             }
         });
 

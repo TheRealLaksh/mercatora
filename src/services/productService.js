@@ -1,29 +1,39 @@
 import { db } from "../config/firebase";
-import { 
-    collection, 
-    addDoc, 
-    getDocs, 
-    query, 
-    orderBy, 
+import {
+    collection,
+    addDoc,
+    getDocs,
+    query,
+    orderBy,
     where, // <--- ADD THIS IMPORT
-    serverTimestamp 
+    serverTimestamp
 } from "firebase/firestore";
 
 const COLLECTION_NAME = "products";
 
 export const ProductService = {
-    // ... [Keep addProduct as is] ...
+    // In src/services/productService.js
+
     async addProduct(productData) {
-        // (Keep existing code)
         try {
-            if (!productData.shopId) throw new Error("Product must be assigned to a shop!");
+            if (!productData.shopId) throw new Error("Product must be assigned to a shop.");
+            if (!productData.name) throw new Error("Product Name is required.");
+
+            const price = parseFloat(productData.price);
+            const stock = parseInt(productData.stock);
+
+            // NUMERIC CHECKS
+            if (isNaN(price) || price < 0) throw new Error("Price must be a positive number.");
+            if (isNaN(stock) || stock < 0) throw new Error("Stock cannot be negative.");
+
             const payload = {
                 ...productData,
-                price: parseFloat(productData.price),
-                stock: parseInt(productData.stock),
+                price,
+                stock,
                 createdAt: serverTimestamp()
             };
-            const docRef = await addDoc(collection(db, COLLECTION_NAME), payload);
+
+            const docRef = await addDoc(collection(db, "products"), payload);
             return { id: docRef.id, ...payload };
         } catch (error) {
             console.error("Error adding product:", error);
@@ -49,12 +59,12 @@ export const ProductService = {
         try {
             // Create a query against the collection
             const q = query(
-                collection(db, COLLECTION_NAME), 
+                collection(db, COLLECTION_NAME),
                 where("shopId", "==", shopId) // <--- The Filtering Magic
             );
 
             const querySnapshot = await getDocs(q);
-            
+
             return querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
