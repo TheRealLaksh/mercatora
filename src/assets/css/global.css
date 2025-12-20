@@ -80,3 +80,55 @@ body {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none;
 }
 .cart-overlay.open { display: block; }
+
+/* Search Bar Container */
+.search-container {
+  position: relative;
+  max-width: 600px;
+  margin: -30px auto 20px; /* Overlap the Hero slightly */
+  z-index: 10;
+  padding: 0 1rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 16px 24px;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--card-bg);
+  color: var(--text-color);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  box-shadow: 0 15px 30px rgba(37, 99, 235, 0.2);
+  border-color: var(--primary-color);
+}
+
+/* Skeleton Loading Animation */
+.skeleton {
+  background: linear-gradient(90deg, var(--card-bg) 25%, var(--border-color) 50%, var(--card-bg) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Wishlist Heart */
+.heart-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #cbd5e1; /* Gray by default */
+  transition: transform 0.2s, color 0.2s;
+}
+.heart-btn:hover { transform: scale(1.2); }
+.heart-btn.active { color: #ef4444; /* Red when active */ }
