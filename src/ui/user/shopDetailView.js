@@ -26,61 +26,66 @@ export const ShopDetailView = {
     async init(params) {
         const { shop, onBack } = params;
 
-        // Setup Breadcrumbs
+        // 1. Setup Breadcrumbs & Header
         document.getElementById('crumbHome').addEventListener('click', onBack);
         document.getElementById('crumbShop').textContent = shop.name;
-
-        // Header Info
         document.getElementById('shopTitle').textContent = shop.name;
         document.getElementById('shopMeta').textContent = `${shop.category} | ${shop.floor} Floor`;
-        container.innerHTML = products.map(p => `
-    <div class="glass-card product-card" data-id="${p.id}" style="padding: 1rem; cursor: pointer;">
-        </div>
-`).join('');
 
-        // Fetch Products
+        // 2. Fetch Products
         const container = document.getElementById('shopProductList');
+        
         try {
             const products = await ProductService.getProductsByShop(shop.id);
 
             if (products.length === 0) {
-                container.innerHTML = '<p>No products available.</p>';
+                container.innerHTML = '<p>No products available in this shop.</p>';
                 return;
             }
 
+            // 3. Render Products (Added 'product-card' class and 'data-id' for Modal)
             container.innerHTML = products.map(p => `
-                <div class="glass-card" style="padding: 1rem;">
-                    <div style="height: 150px; background: #f1f5f9; border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; color: #cbd5e1;">📷</div>
+                <div class="glass-card product-card" data-id="${p.id}" style="padding: 1rem; cursor: pointer; transition: transform 0.2s;">
+                    <div style="height: 150px; background: #f1f5f9; border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; color: #cbd5e1; font-size: 2rem;">
+                        📷
+                    </div>
                     <h4 style="margin-bottom: 0.5rem;">${p.name}</h4>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
                         <span style="font-weight: bold; color: var(--primary-color);">₹${p.price}</span>
-                        <button class="add-cart-btn" data-id="${p.id}" style="background: var(--primary-color); color: white; border: none; padding: 5px 15px; border-radius: 20px; cursor: pointer;">
+                        <button class="add-cart-btn" data-id="${p.id}" style="background: var(--primary-color); color: white; border: none; padding: 5px 15px; border-radius: 20px; cursor: pointer; z-index: 2; position: relative;">
                             + Add
                         </button>
                     </div>
                 </div>
             `).join('');
 
-            // Attach Cart Listeners
+            // 4. Attach Listeners
+            
+            // A. Add to Cart (Stop propagation so it doesn't open modal)
             container.querySelectorAll('.add-cart-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevents clicking the card background
                     const product = products.find(p => p.id === e.target.dataset.id);
                     CartService.addToCart(product);
                     Toast.show(`Added ${product.name} to cart`, "success");
                 });
-                container.querySelectorAll('.product-card').forEach(card => {
-                    card.addEventListener('click', (e) => {
-                        // Prevent modal if clicking the "Add" button directly
-                        if (e.target.classList.contains('add-cart-btn')) return;
+            });
 
-                        const product = products.find(p => p.id === card.dataset.id);
+            // B. Open Product Modal
+            container.querySelectorAll('.product-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    const product = products.find(p => p.id === card.dataset.id);
+                    if (ProductModal) {
                         ProductModal.open(product);
-                    });
+                    } else {
+                        console.error("ProductModal is not defined. Check your imports.");
+                    }
                 });
             });
 
         } catch (error) {
-            container.innerHTML = '<p>Error loading products.</p>';
+            console.error(error);
+            container.innerHTML = '<p style="color: red;">Error loading products. Please try again.</p>';
         }
     }
 };
