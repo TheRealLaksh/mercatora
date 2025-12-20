@@ -25,10 +25,48 @@ export const CartDrawer = {
     document.getElementById('closeCartBtn').addEventListener('click', this.close);
     document.getElementById('cartOverlay').addEventListener('click', this.close);
     
+    // UPDATED CHECKOUT LOGIC WITH MODAL
     document.getElementById('checkoutBtn').addEventListener('click', () => {
-      CartService.clearCart();
-      this.close();
-      Toast.show("🎉 Order placed successfully!", "success");
+        const cart = CartService.getCart();
+        if (cart.length === 0) {
+            Toast.show("Your cart is empty!", "error");
+            return;
+        }
+
+        // 1. Create Modal HTML
+        const dialogHTML = `
+            <div id="checkoutModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+                <div class="glass-card" style="background: var(--card-bg); padding: 2rem; width: 90%; max-width: 400px; animation: slideIn 0.3s ease;">
+                    <h2>Confirm Order</h2>
+                    <p style="margin-bottom: 1rem; color: var(--text-muted);">Enter your details to place the order.</p>
+                    
+                    <input type="text" placeholder="Your Name" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--background-color); color: var(--text-color);">
+                    <input type="text" placeholder="Table No / Address" style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--background-color); color: var(--text-color);">
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button id="cancelOrder" style="flex: 1; padding: 10px; background: transparent; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; color: var(--text-color);">Cancel</button>
+                        <button id="confirmOrder" style="flex: 1; padding: 10px; background: var(--success-color); border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer;">Place Order</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 2. Inject into DOM
+        document.body.insertAdjacentHTML('beforeend', dialogHTML);
+
+        // 3. Handle Cancel
+        document.getElementById('cancelOrder').onclick = () => {
+            document.getElementById('checkoutModal').remove();
+        };
+        
+        // 4. Handle Confirm
+        document.getElementById('confirmOrder').onclick = () => {
+            // Here you would normally send data to backend
+            CartService.clearCart();
+            document.getElementById('checkoutModal').remove();
+            this.close(); // Close the drawer
+            Toast.show("🎉 Order placed! We'll be there soon.", "success");
+        };
     });
   },
   
@@ -48,7 +86,7 @@ export const CartDrawer = {
     const totalEl = document.getElementById('cartTotal');
     
     if (cart.length === 0) {
-      container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Your cart is empty.</p>';
+      container.innerHTML = '<p style="color: var(--text-muted); text-align: center; margin-top: 2rem;">Your cart is empty.</p>';
       totalEl.textContent = '₹0';
       return;
     }
@@ -57,13 +95,13 @@ export const CartDrawer = {
     container.innerHTML = cart.map(item => {
       total += item.price * item.qty;
       return `
-        <div style="display: flex; gap: 10px; margin-bottom: 1rem; align-items: center;">
-          <div style="width: 50px; height: 50px; background: #eee; border-radius: 4px;"></div>
+        <div style="display: flex; gap: 10px; margin-bottom: 1rem; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+          <div style="width: 50px; height: 50px; background: #f1f5f9; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">🛍️</div>
           <div style="flex: 1;">
-            <h4 style="font-size: 0.9rem;">${item.name}</h4>
+            <h4 style="font-size: 0.95rem; margin-bottom: 2px;">${item.name}</h4>
             <p style="font-size: 0.8rem; color: var(--text-muted);">₹${item.price} x ${item.qty}</p>
           </div>
-          <span style="font-weight: bold;">₹${item.price * item.qty}</span>
+          <span style="font-weight: bold; color: var(--primary-color);">₹${item.price * item.qty}</span>
         </div>
       `;
     }).join('');

@@ -5,7 +5,9 @@ import {
     getDocs,
     query,
     orderBy,
-    serverTimestamp
+    serverTimestamp,
+    deleteDoc, 
+    doc
 } from "firebase/firestore";
 import { LoggerService } from "./loggerService"; // <--- IMPORT THIS
 
@@ -63,5 +65,16 @@ export const ShopService = {
             console.error("Error fetching shops:", error);
             throw error;
         }
+    },
+    async deleteShop(shopId) {
+        try {
+            const shopRef = doc(db, COLLECTION_NAME, shopId);
+            await deleteDoc(shopRef);
+            // Optional: You should ideally delete all products belonging to this shop here too
+        } catch (error) {
+            console.error("Error deleting shop:", error);
+            throw error;
+        }
     }
+
 };

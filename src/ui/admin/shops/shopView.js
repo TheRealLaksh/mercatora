@@ -57,7 +57,7 @@ export const ShopView = {
 
     async init() {
         console.log("Shop View Initialized");
-        
+
         // DOM Elements
         const formContainer = document.getElementById('shopFormContainer');
         const openBtn = document.getElementById('openShopModalBtn');
@@ -89,12 +89,12 @@ export const ShopView = {
                 submitBtn.textContent = "Saving...";
 
                 await ShopService.addShop(shopData);
-                
+
                 alert("✅ Shop Added Successfully!");
                 form.reset();
                 formContainer.style.display = 'none';
-                this.loadShops(listContainer); 
-            
+                this.loadShops(listContainer);
+
             } catch (error) {
                 // Show error message
                 alert("⚠️ " + error.message);
@@ -114,23 +114,44 @@ export const ShopView = {
         container.innerHTML = '<p>Loading...</p>';
         try {
             const shops = await ShopService.getAllShops();
-            
+
             if (shops.length === 0) {
                 container.innerHTML = '<p>No shops found. Add one!</p>';
                 return;
             }
 
             container.innerHTML = shops.map(shop => `
-                <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 5px solid var(--primary-color);">
-                    <h3 style="margin-bottom: 0.5rem;">${shop.name}</h3>
-                    <p style="color: #64748b; font-size: 0.9rem;">${shop.category} | ${shop.floor} Floor</p>
-                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: bold;">#${shop.shopNumber}</span>
-                        <span style="font-size: 0.8rem; background: #e2e8f0; padding: 2px 8px; border-radius: 10px;">${shop.status}</span>
-                    </div>
-                </div>
-            `).join('');
-            
+    <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 5px solid var(--primary-color); position: relative;">
+        <button class="delete-shop-btn" data-id="${shop.id}" 
+            style="position: absolute; top: 10px; right: 10px; background: #fee2e2; color: #ef4444; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+            🗑️ Delete
+        </button>
+
+        <h3 style="margin-bottom: 0.5rem; padding-right: 2rem;">${shop.name}</h3>
+        <p style="color: #64748b; font-size: 0.9rem;">${shop.category} | ${shop.floor} Floor</p>
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: bold;">#${shop.shopNumber}</span>
+            <span style="font-size: 0.8rem; background: #e2e8f0; padding: 2px 8px; border-radius: 10px;">${shop.status}</span>
+        </div>
+    </div>
+`).join('');
+
+            // Add Event Listeners for Delete
+            container.querySelectorAll('.delete-shop-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    if (confirm('Are you sure you want to delete this shop? This cannot be undone.')) {
+                        try {
+                            const id = e.target.dataset.id;
+                            await ShopService.deleteShop(id);
+                            // Reload list
+                            this.loadShops(container);
+                        } catch (err) {
+                            alert("Failed to delete");
+                        }
+                    }
+                });
+            });
+
         } catch (error) {
             container.innerHTML = `<p style="color: red">Failed to load shops.</p>`;
         }

@@ -5,8 +5,10 @@ import {
     getDocs,
     query,
     orderBy,
-    where, // <--- ADD THIS IMPORT
-    serverTimestamp
+    where,
+    serverTimestamp,
+    deleteDoc,
+    doc
 } from "firebase/firestore";
 
 const COLLECTION_NAME = "products";
@@ -71,6 +73,15 @@ export const ProductService = {
             }));
         } catch (error) {
             console.error("Error fetching shop products:", error);
+            throw error;
+        }
+    },
+    async deleteProduct(productId) {
+        try {
+            const productRef = doc(db, COLLECTION_NAME, productId);
+            await deleteDoc(productRef);
+        } catch (error) {
+            console.error("Error deleting product:", error);
             throw error;
         }
     }

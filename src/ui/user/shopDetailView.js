@@ -1,6 +1,7 @@
 import { ProductService } from "../../services/productService";
 import { CartService } from "../../services/cartService";
 import { Toast } from "../common/toast";
+import { ProductModal } from "./productModal";
 
 export const ShopDetailView = {
     template: `
@@ -32,14 +33,18 @@ export const ShopDetailView = {
         // Header Info
         document.getElementById('shopTitle').textContent = shop.name;
         document.getElementById('shopMeta').textContent = `${shop.category} | ${shop.floor} Floor`;
+        container.innerHTML = products.map(p => `
+    <div class="glass-card product-card" data-id="${p.id}" style="padding: 1rem; cursor: pointer;">
+        </div>
+`).join('');
 
         // Fetch Products
         const container = document.getElementById('shopProductList');
         try {
             const products = await ProductService.getProductsByShop(shop.id);
-            
-            if(products.length === 0) {
-                container.innerHTML = '<p>No products available.</p>'; 
+
+            if (products.length === 0) {
+                container.innerHTML = '<p>No products available.</p>';
                 return;
             }
 
@@ -62,6 +67,15 @@ export const ShopDetailView = {
                     const product = products.find(p => p.id === e.target.dataset.id);
                     CartService.addToCart(product);
                     Toast.show(`Added ${product.name} to cart`, "success");
+                });
+                container.querySelectorAll('.product-card').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        // Prevent modal if clicking the "Add" button directly
+                        if (e.target.classList.contains('add-cart-btn')) return;
+
+                        const product = products.find(p => p.id === card.dataset.id);
+                        ProductModal.open(product);
+                    });
                 });
             });
 

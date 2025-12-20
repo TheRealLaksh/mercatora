@@ -80,9 +80,9 @@ export const ProductView = {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(form);
-            const submitBtn = form.querySelector('button[type="submit"]'); // Grab button ref
+            const submitBtn = form.querySelector('button[type="submit"]');
 
-            // Get the Shop Name for display purposes
+            // Grab the selected text for display purposes
             const selectedShopOption = shopSelect.options[shopSelect.selectedIndex].text;
 
             const productData = {
@@ -95,7 +95,6 @@ export const ProductView = {
             };
 
             try {
-                // UI Feedback: Disable & Loading State
                 submitBtn.disabled = true;
                 submitBtn.textContent = "Saving...";
 
@@ -107,10 +106,8 @@ export const ProductView = {
                 this.loadProducts(listContainer);
 
             } catch (error) {
-                // Show clean error message
                 alert("⚠️ " + error.message);
             } finally {
-                // Always re-enable button
                 submitBtn.disabled = false;
                 submitBtn.textContent = "Save Product";
             }
@@ -131,8 +128,13 @@ export const ProductView = {
             }
 
             container.innerHTML = products.map(p => `
-                <div style="background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-top: 4px solid var(--accent-color);">
-                    <h4 style="margin-bottom: 0.25rem;">${p.name}</h4>
+                <div style="background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-top: 4px solid var(--accent-color); position: relative;">
+                    <button class="delete-prod-btn" data-id="${p.id}" 
+                        style="position: absolute; top: 5px; right: 5px; background: none; border: none; cursor: pointer; font-size: 1rem; opacity: 0.5;">
+                        &times;
+                    </button>
+                    
+                    <h4 style="margin-bottom: 0.25rem; padding-right: 15px;">${p.name}</h4>
                     <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 0.5rem;">${p.shopName || 'Unknown Shop'}</p>
                     
                     <div style="display: flex; justify-content: space-between; align-items: center; font-weight: bold;">
@@ -143,6 +145,21 @@ export const ProductView = {
                     </div>
                 </div>
             `).join('');
+
+            // Attach Delete Listeners
+            container.querySelectorAll('.delete-prod-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    if (confirm('Delete this product?')) {
+                        try {
+                            await ProductService.deleteProduct(e.target.dataset.id);
+                            this.loadProducts(container);
+                        } catch (err) {
+                            alert("Failed to delete product.");
+                        }
+                    }
+                });
+            });
+
         } catch (error) {
             container.innerHTML = '<p>Error loading inventory.</p>';
         }
