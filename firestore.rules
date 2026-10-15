@@ -1,0 +1,237 @@
+rules_version = '2';
+
+// Mercatora Firestore rules.
+// Roles live in users/{uid}.role: shopper | owner | admin.
+// Owners are linked to shops through users/{uid}.shopIds.
+// Only admins can change a role or a shop link. See docs/SECURITY.md.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+    function profilePath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+    function hasProfile() {
+      return signedIn() && exists(profilePath());
+    }
+    function profile() {
+      return get(profilePath()).data;
+    }
+    function role() {
+      return hasProfile() ? profile().get('role', 'shopper') : 'guest';
+    }
+    function isAdmin() {
+      return role() == 'admin';
+    }
+    function isOwnerOf(shopId) {
+      return role() == 'owner' && shopId in profile().get('shopIds', []);
+    }
+    function isStaffOf(shopId) {
+      return isAdmin() || isOwnerOf(shopId);
+    }
+    function isString(v, min, max) {
+      return v is string && v.size() >= min && v.size() <= max;
+    }
+    function isNum(v, min, max) {
+      return v is number && v >= min && v <= max;
+    }
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // ---------- users ----------
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['displayName', 'email', 'role', 'shopIds', 'favorites', 'createdAt'])
+        && request.resource.data.keys().hasAll(['displayName', 'email', 'role', 'shopIds', 'favorites', 'createdAt'])
+        && request.resource.data.role == 'shopper'
+        && request.resource.data.shopIds == []
+        && isString(request.resource.data.displayName, 1, 80)
+        && request.resource.data.favorites is list
+        && request.resource.data.favorites.size() <= 200
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if isAdmin()
+        || (signedIn() && request.auth.uid == uid
+            && changedKeys().hasOnly(['displayName', 'favorites'])
+            && isString(request.resource.data.displayName, 1, 80)
+            && request.resource.data.favorites is list
+            && request.resource.data.favorites.size() <= 200);
+
+      allow delete: if isAdmin();
+    }
+
+    // ---------- settings ----------
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------- shops ----------
+    function validShop(d) {
+      return d.keys().hasAll(['name', 'category', 'floor', 'status'])
+        && isString(d.name, 1, 80)
+        && d.category in ['Fashion', 'Beauty', 'Electronics', 'Dining', 'Home', 'Books and Gifts', 'Sports', 'Entertainment', 'Services']
+        && d.floor in ['G', '1', '2', '3']
+        && d.status in ['active', 'inactive', 'pending']
+        && (!('description' in d) || isString(d.description, 0, 2000))
+        && (!('tagline' in d) || isString(d.tagline, 0, 140));
+    }
+
+    match /shops/{shopId} {
+      allow read: if resource.data.status == 'active' || isStaffOf(shopId);
+
+      allow create: if isAdmin() && validShop(request.resource.data);
+
+      allow update: if (isAdmin() && validShop(request.resource.data))
+        || (isOwnerOf(shopId)
+            && validShop(request.resource.data)
+            && changedKeys().hasOnly(['tagline', 'description', 'hours', 'phone', 'email', 'website', 'logoUrl', 'coverUrl', 'tags', 'updatedAt']));
+
+      allow delete: if isAdmin();
+    }
+
+    // ---------- products ----------
+    function validProduct(d) {
+      return d.keys().hasAll(['shopId', 'name', 'price', 'stock', 'status'])
+        && isString(d.name, 1, 120)
+        && isNum(d.price, 0, 10000000)
+        && d.stock is int && d.stock >= 0 && d.stock <= 100000
+        && d.status in ['active', 'draft', 'archived']
+        && (!('mrp' in d) || d.mrp == null || isNum(d.mrp, 0, 10000000))
+        && (!('description' in d) || isString(d.description, 0, 2000));
+    }
+
+    match /products/{productId} {
+      // resource == null lets clients check for a missing document (for example a product deleted while in a bag).
+      allow read: if resource == null || resource.data.status == 'active' || isStaffOf(resource.data.shopId);
+
+      allow create: if isStaffOf(request.resource.data.shopId)
+        && validProduct(request.resource.data)
+        && exists(/databases/$(database)/documents/shops/$(request.resource.data.shopId));
+
+      allow update: if isStaffOf(resource.data.shopId)
+        && request.resource.data.shopId == resource.data.shopId
+        && validProduct(request.resource.data);
+
+      allow delete: if isStaffOf(resource.data.shopId);
+    }
+
+    // ---------- reservations (reserve and pick up) ----------
+    match /reservations/{reservationId} {
+      allow read: if signedIn()
+        && (resource.data.shopperUid == request.auth.uid || isStaffOf(resource.data.shopId));
+
+      allow create: if signedIn()
+        && request.resource.data.shopperUid == request.auth.uid
+        && request.resource.data.status == 'requested'
+        && request.resource.data.keys().hasOnly(['shopId', 'shopName', 'shopperUid', 'shopperName', 'phone', 'note', 'pickupWindow', 'items', 'total', 'code', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.items is list
+        && request.resource.data.items.size() >= 1
+        && request.resource.data.items.size() <= 20
+        && isNum(request.resource.data.total, 0, 10000000)
+        && isString(request.resource.data.shopperName, 1, 80)
+        && isString(request.resource.data.phone, 6, 20)
+        && isString(request.resource.data.code, 6, 6)
+        && isString(request.resource.data.get('note', ''), 0, 300)
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/shops/$(request.resource.data.shopId))
+        && get(/databases/$(database)/documents/shops/$(request.resource.data.shopId)).data.status == 'active';
+
+      allow update: if
+        // shop staff move the reservation along
+        (isStaffOf(resource.data.shopId)
+          && changedKeys().hasOnly(['status', 'updatedAt', 'staffNote'])
+          && request.resource.data.status in ['requested', 'confirmed', 'ready', 'collected', 'cancelled', 'expired'])
+        // shoppers may only withdraw a request that has not been confirmed
+        || (signedIn()
+          && resource.data.shopperUid == request.auth.uid
+          && resource.data.status == 'requested'
+          && changedKeys().hasOnly(['status', 'updatedAt'])
+          && request.resource.data.status == 'cancelled');
+
+      allow delete: if isAdmin();
+    }
+
+    // ---------- reviews ----------
+    // Document id is {shopId}_{uid}, so each shopper has at most one review per shop.
+    match /reviews/{reviewId} {
+      // resource == null lets a shopper check whether they have already reviewed this store.
+      allow read: if resource == null
+        || resource.data.status == 'published'
+        || isStaffOf(resource.data.shopId)
+        || (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if signedIn()
+        && reviewId == request.resource.data.shopId + '_' + request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'published'
+        && request.resource.data.keys().hasOnly(['shopId', 'uid', 'authorName', 'rating', 'text', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && isString(request.resource.data.text, 0, 1000)
+        && isString(request.resource.data.authorName, 1, 80)
+        && request.resource.data.createdAt == request.time
+        && !isOwnerOf(request.resource.data.shopId)
+        && exists(/databases/$(database)/documents/shops/$(request.resource.data.shopId));
+
+      allow update: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid
+            && changedKeys().hasOnly(['rating', 'text', 'updatedAt'])
+            && request.resource.data.rating is int
+            && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+            && isString(request.resource.data.text, 0, 1000))
+        || (isOwnerOf(resource.data.shopId)
+            && changedKeys().hasOnly(['reply', 'repliedAt'])
+            && isString(request.resource.data.reply, 0, 600));
+
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    // ---------- offers and events ----------
+    function validOffer(d) {
+      return d.keys().hasAll(['kind', 'title', 'startsAt', 'endsAt', 'published'])
+        && d.kind in ['offer', 'event']
+        && isString(d.title, 1, 120)
+        && d.startsAt is timestamp && d.endsAt is timestamp
+        && d.endsAt >= d.startsAt
+        && d.published is bool
+        && (!('description' in d) || isString(d.description, 0, 1500));
+    }
+    function offerShopId(d) {
+      return d.get('shopId', null);
+    }
+    function canManageOffer(d) {
+      return isAdmin() || (offerShopId(d) != null && isOwnerOf(offerShopId(d)));
+    }
+
+    match /offers/{offerId} {
+      allow read: if resource.data.published == true || canManageOffer(resource.data);
+      allow create: if canManageOffer(request.resource.data) && validOffer(request.resource.data);
+      allow update: if canManageOffer(resource.data) && canManageOffer(request.resource.data) && validOffer(request.resource.data);
+      allow delete: if canManageOffer(resource.data);
+    }
+
+    // ---------- audit log (append only) ----------
+    match /logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if (isAdmin() || role() == 'owner')
+        && request.resource.data.keys().hasOnly(['action', 'details', 'entity', 'entityId', 'performedBy', 'uid', 'timestamp'])
+        && request.resource.data.uid == request.auth.uid
+        && isString(request.resource.data.action, 1, 60)
+        && isString(request.resource.data.details, 0, 400)
+        && request.resource.data.timestamp == request.time;
+      allow update, delete: if false;
+    }
+
+    // Anything not listed above is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [master, 'claude/**']
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - name: Security rules (Firestore and Storage)
+        run: RUN_STORAGE_RULES=1 npm run test:rules
+      - name: Browser tests
+        run: |
+          npx playwright install --with-deps chromium
+          npx firebase emulators:exec --only auth,firestore,storage --project demo-mercatora "node scripts/seed.mjs && npx playwright test"

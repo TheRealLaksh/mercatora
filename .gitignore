@@ -2,24 +2,34 @@
 logs
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
+# Dependencies and build output
 node_modules
 dist
 dist-ssr
+coverage
+playwright-report
+test-results
+
+# Firebase local state
+.firebase
+.emulator-data
+firebase-debug.log*
+firestore-debug.log
+ui-debug.log
+database-debug.log
+pubsub-debug.log
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+serviceAccount*.json
 *.local
 
-# Editor directories and files
+# Editors and OS
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
 *.sw?
-.env

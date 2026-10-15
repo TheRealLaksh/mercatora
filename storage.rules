@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// Public read, staff-only write, images only, 5 MB max.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function profile() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+    function isAdmin() {
+      return request.auth != null && profile().get('role', 'shopper') == 'admin';
+    }
+    function isOwnerOf(shopId) {
+      return request.auth != null
+        && profile().get('role', 'shopper') == 'owner'
+        && shopId in profile().get('shopIds', []);
+    }
+    function validImage() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
+    match /media/shops/{shopId}/{file} {
+      allow read: if true;
+      allow create, update: if (isAdmin() || isOwnerOf(shopId)) && validImage();
+      allow delete: if isAdmin() || isOwnerOf(shopId);
+    }
+
+    match /media/products/{shopId}/{file} {
+      allow read: if true;
+      allow create, update: if (isAdmin() || isOwnerOf(shopId)) && validImage();
+      allow delete: if isAdmin() || isOwnerOf(shopId);
+    }
+
+    match /media/offers/{scope}/{file} {
+      allow read: if true;
+      allow create, update: if (isAdmin() || isOwnerOf(scope)) && validImage();
+      allow delete: if isAdmin() || isOwnerOf(scope);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
