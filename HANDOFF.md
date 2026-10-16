@@ -26,7 +26,7 @@ Poll answers (three rounds):
 | Theme | Light default, dark available |
 | Delivery | Commit to the branch, no PR |
 
-Standing rule from the owner: **no em dashes or en dashes anywhere** (UI copy, docs, comments). Verify with `grep -rn "—\|–" README.md docs src scripts tests e2e HANDOFF.md`, which should print nothing.
+Standing rule from the owner: **no em dashes or en dashes anywhere** (UI copy, docs, comments). Verify with `grep -rnP "\x{2014}|\x{2013}" README.md HANDOFF.md docs src scripts tests e2e`, which should print nothing.
 
 ## 3. Resume in five minutes
 
